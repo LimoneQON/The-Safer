@@ -31,7 +31,7 @@ export const MOBS = [
 ];
 
 export const NPC_POOL = [
-    {n: "Piotr 'Ciepły'", s: "🧔", text: "Witaj w bezpiecznej strefie. Rzymianie-Żydzi to tylko kod w Matrixie."},
+    {n: "Piotr 'Ciepły'", s: "🧔", text: "Witaj w bezpiecznej strefie. Pamiętaj, Rzymianie-Żydzi nas obserwują. Tutaj jesteś bezpieczny."},
     {n: "Gotka Oliwia 'Tom'", s: "🧛‍♀️", text: "Nigdy nie stój w miejscu, bo dopadną cię błędy symulacji."},
     {n: "Bułka Zulczyk", s: "🍞", text: "Kowal ma schemat Ostrza Zagłady. Potrzebujesz esencji Cienia z Licza."}
 ];
@@ -45,7 +45,7 @@ export const PERKS = [
 
 export const RECIPES = [
     {name: "Skórzany Pas (Max Stack x15)", req: {wood: 5}, type: 'belt', val: 1}, {name: "Pas Tytanów (Max Stack x50)", req: {steel: 10, fire: 5}, type: 'belt', val: 2},
-    {name: "Sztylet (+8 Dmg)", req: {wood: 2, steel: 1}, type: 'wep', val: 1}, {name: "Stalowy Miecz (+15 Dmg)", req: {steel: 3, wood: 1}, type: 'wep', val: 2},
+    {name: "Sztylet (+8 Dmg)", req: {wood: 2, steel: 1}, type: 'wep', val: 1}, {name: "Miecz (+15 Dmg)", req: {steel: 3, wood: 1}, type: 'wep', val: 2},
     {name: "Topór (+35 Dmg)", req: {steel: 10, fire: 5}, type: 'wep', val: 3}, {name: "Kij Maga (+60 Dmg)", req: {wood: 10, magic: 5}, type: 'wep', val: 4},
     {name: "Ostrze Zagłady (+120 Dmg)", req: {steel: 20, fire: 15, magic: 10}, type: 'wep', val: 5},
     {name: "Skórzany Kaptur (+3 Def)", req: {wood: 3}, type: 'helm', val: 1}, {name: "Żelazny Hełm (+10 Def)", req: {steel: 5}, type: 'helm', val: 2}, {name: "Korona Magii (+25 Def)", req: {magic: 10, steel: 5}, type: 'helm', val: 3},
