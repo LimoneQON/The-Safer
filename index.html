@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=no">
+    <title>Fantasy Odyssey - Ostateczna Wersja</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+<div id="login-screen" class="fullscreen-menu">
+    <div class="menu-title">FANTASY ODYSSEY<br><span style="font-size: 16px; color:#55ff55;">System Kont</span></div>
+    <input type="text" id="acc-username" class="acc-input" placeholder="Nazwa użytkownika">
+    <input type="password" id="acc-password" class="acc-input" placeholder="Hasło">
+    <button class="menu-btn" style="border-color:#55ff55;" onclick="window.loginAccount()">Zaloguj się</button>
+    <button class="menu-btn" style="border-color:#ffcc00;" onclick="window.registerAccount()">Stwórz nowe konto</button>
+</div>
+
+<div id="char-select" class="fullscreen-menu" style="display:none; z-index:110;">
+    <h1 style="color: #ffcc00;">Wybierz swoją postać i klasę:</h1>
+    <div class="hero-grid">
+        <div class="hero-card" onclick="window.selectHero('Michał Kutas', 'Wojownik', 150, 15)"><h3>Michał Kutas (Wojownik)</h3>Czołg. Dużo HP i Pancerza.</div>
+        <div class="hero-card" onclick="window.selectHero('Dżon Pinat', 'Mag', 50, 35)"><h3>Dżon Pinat (Mag)</h3>Potężne zaklęcia, papierowe HP.</div>
+        <div class="hero-card" onclick="window.selectHero('Gibki Gibek', 'Łotr', 80, 25)"><h3>Gibki Gibek (Łotr)</h3>Szybki, wysoki krytyk.</div>
+        <div class="hero-card" onclick="window.selectHero('Paskalito Pedalino', 'Łucznik', 70, 40)"><h3>Paskalito (Łucznik)</h3>Zabójczy dystans.</div>
+    </div>
+</div>
+
+<div id="main-menu" class="fullscreen-menu" style="display:none;">
+    <div class="menu-title">MENU GŁÓWNE</div>
+    <div style="color:#55ff55; margin-bottom: 15px;">Zalogowano: <b id="logged-user-name">???</b></div>
+    <button class="menu-btn" style="background: #225522; border-color: #55ff55;" onclick="window.loadGame()">💾 Wczytaj Zapisaną Grę</button>
+    <select id="diff-selector" class="diff-select">
+        <option value="1" selected>Trudność: Normalny</option>
+        <option value="2">Trudność: Ciężki (Ruchome Potwory)</option>
+        <option value="3">Trudność: HARDCORE (Permadeath)</option>
+    </select>
+    <label class="checkbox-18"><input type="checkbox" id="mode-18plus"> Tryb 18+ (Rozkosz, Wpadki, Używki)</label>
+    <button class="menu-btn" onclick="window.openCharSelection('single')">Start Singleplayer</button>
+    <div style="margin-top: 15px; border-top: 1px solid #444; width: 350px;">
+        <h3 style="color:#00ffff;">KOOPERACJA (P2P)</h3>
+        <button class="menu-btn" onclick="window.openCharSelection('host')">Załóż Pokój (HOST)</button>
+        <input type="text" id="join-id" class="mp-input" placeholder="ID hosta...">
+        <button class="menu-btn" onclick="window.openCharSelection('join')">Dołącz do Pokoju</button>
+    </div>
+    <button class="menu-btn" style="border-color:#ff5555; color:#ff5555;" onclick="window.logoutAccount()">Wyloguj się</button>
+</div>
+
+<div id="loading-screen" class="fullscreen-menu" style="display:none; z-index:200;">
+    <h2 style="color:#00ffff;">Twój kod pokoju:</h2>
+    <h1 id="mp-room-id" style="color:#fff; background:#222; padding:10px;">GENEROWANIE...</h1>
+    <button class="btn" onclick="location.reload()">Anuluj</button>
+</div>
+
+<div id="game-wrapper">
+    <div class="view-container">
+        <canvas id="view3d" width="600" height="480"></canvas>
+        <div id="portal-screen" class="overlay">
+            <h2 style="color:#00ffff; text-align:center;">🌌 PORTAL MIĘDZYWYMIAROWY</h2>
+            <div class="portal-grid">
+                <div class="portal-box" onclick="window.travelToWorld('human')"><h3>Ludzkie Królestwa</h3></div>
+                <div class="portal-box" onclick="window.travelToWorld('elf')"><h3>Świat Elfów</h3></div>
+                <div class="portal-box" onclick="window.travelToWorld('dwarf')"><h3>Krasnoludy</h3></div>
+                <div class="portal-box" onclick="window.travelToWorld('homunculus')"><h3>Homunkulusy</h3></div>
+            </div>
+            <button class="btn" style="margin:20px;" onclick="window.closePortalScreen()">Anuluj</button>
+        </div>
+        <div id="perk-screen" class="overlay">
+            <h2 style="color:#55ff55; text-align:center;">✨ AWANS! WYBIERZ PERK</h2>
+            <div class="perk-cards" id="perk-container"></div>
+        </div>
+        <div id="combat-screen" class="overlay">
+            <div class="combat-top">
+                <div class="combat-box"><h3 id="c-enemy-name" style="margin:0; color:#ffcc00;">Potwór</h3><div class="bar-bg"><div class="bar-fill" id="c-enemy-hp-bar"></div></div></div>
+                <div class="combat-box"><h3 style="margin:0;">Ty (HP: <span id="c-player-hp-text"></span>)</h3><div class="bar-bg"><div class="bar-fill" id="c-player-hp-bar"></div></div></div>
+            </div>
+            <div id="enemy-sprite" style="font-size:100px; text-align:center; margin-top:auto;">👹</div>
+            <div class="combat-menu">
+                <button class="btn" onclick="window.combatAction('Zwykly')">Atak ⚔️</button>
+                <button class="btn" onclick="window.combatAction('Silny')">Mocny 💥</button>
+                <button class="btn" onclick="window.combatAction('Bomba')">Bomba 💣</button>
+                <button class="btn" onclick="window.combatAction('Mikstura')">Lecz 🧪</button>
+                <button class="btn" style="grid-column:span 2;" onclick="window.combatAction('Ucieczka')">Ucieczka 🏃</button>
+            </div>
+        </div>
+        <div id="character-screen" class="overlay">
+            <h2 style="color:#55ff55; text-align:center;">📜 PROFIL BOHATERA</h2>
+            <div class="char-grid">
+                <div class="char-box">
+                    <h3>Bojowe</h3>
+                    <div class="stat">Klasa: <b id="ch-class"></b> (Lvl <b id="ch-lvl">1</b>)</div>
+                    <div class="stat">Monety: <b id="ch-coins" style="color:gold;">0</b> 🪙</div>
+                    <div class="stat">Zdrowie: <b id="ch-hp">100 / 100</b></div>
+                    <button class="btn" id="ch-btn-lvlup" style="background:#ffcc00; width:100%; color:#000; margin-top:5px; font-size:11px;" onclick="window.levelUp()">Awans (<span id="ch-cost">20</span>🪙)</button>
+                </div>
+                <div class="char-box" id="companion-box" style="border-color:#ff00ff;">
+                    <h3 style="color:#ff00ff;">Towarzysz</h3><div id="comp-content">Brak towarzyszy.</div>
+                </div>
+                <div class="char-box">
+                    <h3>Ekwipunek</h3>
+                    <div class="stat">Broń: <b id="ch-wep">Pięści</b> | Zbroja: <b id="ch-arm">Szmaty</b></div>
+                    <div class="stat" style="color:#55ff55; font-size:11px;">Perki: <span id="ch-perks-list">Brak</span></div>
+                    <div class="stat">Drewno: <b id="ch-wood">0</b> | Stal: <b id="ch-steel">0</b></div>
+                    <div class="stat">Ogień: <b id="ch-fire">0</b> | Magia: <b id="ch-magic">0</b></div>
+                </div>
+                <div class="char-box">
+                    <h3>Plecak</h3>
+                    <div class="stat">Mikstury 🧪: <b id="ch-pots">0</b> <button class="inv-use-btn" onclick="window.useItem('pot')">Użyj</button></div>
+                    <div class="stat">Bomby 💣: <b id="ch-bombs">0</b></div>
+                    <div id="18-items-div" style="display:none;">
+                        <div class="stat" style="color:#ffcc00;">Wódka 🍺: <b id="ch-vodka">0</b> <button class="inv-use-btn" onclick="window.useItem('vodka')">Pij</button></div>
+                        <div class="stat" style="color:#ff55ff;">Fisstech 💊: <b id="ch-drugs">0</b> <button class="inv-use-btn" onclick="window.useItem('drug')">Zażyj</button></div>
+                        <div class="stat" style="color:#ff3399;">Jajniki 🥚: <b id="ch-ovaries">0</b> <button class="inv-use-btn" onclick="window.useItem('ovaries')">Zjedz</button></div>
+                    </div>
+                </div>
+                <div class="char-box" style="grid-column: span 2;">
+                    <h3>Aktywne Efekty</h3><div id="ch-effects" class="eff-list">Brak.</div>
+                </div>
+            </div>
+            <button class="btn" style="margin:10px;" onclick="window.closeCharacterMenu()">Powrót do Gry</button>
+        </div>
+        <div id="crafting-screen" class="overlay">
+            <h2 style="color:#ffcc00; text-align:center;">KOWALSTWO</h2>
+            <div class="craft-items" id="craft-container"></div>
+            <button class="btn" style="margin:20px;" onclick="window.closeCrafting()">Wróć do gry</button>
+        </div>
+    </div>
+    <div id="ui-panel">
+        <div class="panel" style="text-align: center;">
+            <h2 id="biome-name">LOKACJA</h2>
+            <canvas id="minimap" width="200" height="200"></canvas>
+            <div id="mp-status" style="font-size: 10px; color:#00ffff; margin-top:5px;">Singleplayer</div>
+        </div>
+        <div id="mobile-controls">
+            <div></div><button class="dpad-btn" onclick="window.movePlayer('FORWARD')">W</button><div></div>
+            <button class="dpad-btn" onclick="window.movePlayer('LEFT')">A</button><button class="dpad-btn" onclick="window.movePlayer('BACK')">S</button><button class="dpad-btn" onclick="window.movePlayer('RIGHT')">D</button>
+        </div>
+        <div class="panel">
+            <div class="stat">Świat: <b id="ui-worldname" style="color:#55ff55;">-</b></div>
+            <div class="stat">Loch: <b id="ui-dlvl">1</b> | HP: <b id="ui-hp">100</b>/<b id="ui-maxhp">100</b> ❤️</div>
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button class="btn" style="flex:1; background:#55ff55; font-size:11px;" onclick="window.openCharacterMenu()">PROFIL</button>
+                <button class="btn" style="flex:1; background:#ffaa00; font-size:11px;" onclick="window.openCrafting()">KOWAL</button>
+                <button class="btn" style="flex:1; background:#44aaff; font-size:11px;" onclick="window.saveGame()">ZAPISZ</button>
+            </div>
+        </div>
+        <div class="panel" style="flex-grow: 1;"><h2>🔔 DZIENNIK</h2><div id="log"></div></div>
+    </div>
+</div>
+
+<script type="module" src="main.js"></script>
+</body>
+</html>
