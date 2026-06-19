@@ -21,8 +21,19 @@ export function buildCSS3D(map, entities, player, selectedWorld) {
     world.innerHTML = ''; 
     let texClass = WORLDS[selectedWorld].tex;
 
-    // RENDER DISTANCE - Ograniczamy rysowanie do 4 bloków od gracza! To usuwa Lagi.
-    const RENDER_DIST = 4;
+    // Podłoga i Sufit 3D
+    let floor = document.createElement('div');
+    floor.className = `floor-plane ${texClass}-floor`;
+    floor.style.transform = `translate3d(-5000px, ${TILE_SIZE/2}px, -5000px) rotateX(90deg)`;
+    world.appendChild(floor);
+
+    let ceil = document.createElement('div');
+    ceil.className = `ceil-plane`;
+    ceil.style.transform = `translate3d(-5000px, ${-TILE_SIZE/2}px, -5000px) rotateX(-90deg)`;
+    world.appendChild(ceil);
+
+    // RENDER DISTANCE = 5. (Rysuje tylko 5 bloków przed Tobą - 0 lagów na starych PC!)
+    const RENDER_DIST = 5;
 
     for(let z = Math.max(0, player.z - RENDER_DIST); z <= Math.min(MAP_SIZE-1, player.z + RENDER_DIST); z++) {
         for(let x = Math.max(0, player.x - RENDER_DIST); x <= Math.min(MAP_SIZE-1, player.x + RENDER_DIST); x++) {
@@ -37,7 +48,6 @@ export function buildCSS3D(map, entities, player, selectedWorld) {
         }
     }
 
-    // Rysowanie potworów i itemów - tylko tych w zasięgu wzroku
     entities.forEach(e => {
         if(Math.abs(e.x - player.x) <= RENDER_DIST && Math.abs(e.z - player.z) <= RENDER_DIST) {
             let s = document.createElement('div'); 
@@ -56,8 +66,9 @@ export function updateCamera(player) {
     let px = player.x * TILE_SIZE; 
     let pz = player.z * TILE_SIZE;
     
-    // Kamera przesunięta o translateZ(100px) poprawia widoczność przed ścianą.
-    document.getElementById('world').style.transform = `translateZ(100px) rotateY(${-player.angle}deg) translate3d(${-px}px, 0, ${-pz}px)`;
+    // Kluczowa poprawka: Kamera się obraca, a World się przesuwa!
+    document.getElementById('camera').style.transform = `translateZ(200px) rotateY(${-player.angle}deg)`;
+    document.getElementById('world').style.transform = `translate3d(${-px}px, 0, ${-pz}px)`;
     
     document.querySelectorAll('.sprite').forEach(s => {
         let coords = s.id.split('_'); let ex = coords[1] * TILE_SIZE; let ez = coords[2] * TILE_SIZE;
@@ -82,16 +93,11 @@ export function drawMinimap(map, entities, player) {
             mCtx.fillRect(x*TS, z*TS, TS+0.5, TS+0.5);
         }
     }
-    entities.forEach(e => { 
-        mCtx.fillStyle = e.isEnemy ? '#f33' : '#fc0'; 
-        mCtx.fillRect(e.x*TS+1, e.z*TS+1, TS-2, TS-2); 
-    });
+    entities.forEach(e => { mCtx.fillStyle = e.isEnemy ? '#f33' : '#fc0'; mCtx.fillRect(e.x*TS+1, e.z*TS+1, TS-2, TS-2); });
     
     mCtx.save(); 
     mCtx.translate(player.x * TS + TS/2, player.z * TS + TS/2); 
     mCtx.rotate(player.dir * Math.PI/2); 
     mCtx.fillStyle = '#5f5'; mCtx.beginPath(); 
-    mCtx.moveTo(0, -TS/2); mCtx.lineTo(TS/2, TS/2); mCtx.lineTo(-TS/2, TS/2); 
-    mCtx.fill(); 
-    mCtx.restore();
+    mCtx.moveTo(0, -TS/2); mCtx.lineTo(TS/2, TS/2); mCtx.lineTo(-TS/2, TS/2); mCtx.fill(); mCtx.restore();
 }
