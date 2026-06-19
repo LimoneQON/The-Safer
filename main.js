@@ -1,9 +1,6 @@
 import { ITEM_DB, WEAPONS, ARMORS, BELTS, RECIPES, WORLDS, DIRS, MAP_SIZE, INV_SIZE, T_WALL, T_FLOOR, T_EXIT, T_MEGA_PORTAL, T_DOOR } from './data.js';
 import { buildCSS3D, updateCamera, drawMinimap } from './engine.js';
 
-// ==========================================
-// STAN GRY
-// ==========================================
 let map = [], entities = [], logs = [];
 let state = 'MENU', difficulty = 1, diffMult = 1.0;
 let currentLevel = 1, selectedWorld = 'human';
@@ -15,45 +12,30 @@ let player = {
     inventory: new Array(INV_SIZE).fill(null), selectedSlot: 0
 };
 
-window.logMsg = function(msg, type='log-new') { 
-    logs.unshift(`<span class="${type}">• ${msg}</span><br>`); 
-    if(logs.length > 7) logs.pop(); 
-    document.getElementById('log-box').innerHTML = logs.join(''); 
-};
-
+window.logMsg = function(msg, type='log-new') { logs.unshift(`<span class="${type}">• ${msg}</span><br>`); if(logs.length > 7) logs.pop(); document.getElementById('log-box').innerHTML = logs.join(''); };
 window.closeOverlay = function(id) { state = 'EXPLORE'; document.getElementById(id).style.display = 'none'; };
 window.openOverlay = function(id) { state = 'MENU'; document.getElementById(id).style.display = 'flex'; };
 
-// ==========================================
-// SYSTEM KONT
-// ==========================================
-const STORAGE_KEY = 'fo_multi_v1'; 
+const STORAGE_KEY = 'fo_multi_v3_fixed'; 
 window.currentUser = null;
 
-window.getAccounts = function() { 
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; }
-};
+window.getAccounts = function() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } };
 window.saveAccounts = function(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); };
 
 window.registerAccount = function() {
     let u = document.getElementById('acc-username').value.trim();
     let p = document.getElementById('acc-password').value.trim();
-    if(u.length < 3 || p.length < 3) { alert("Login i Hasło muszą mieć min. 3 znaki!"); return; }
-    
+    if(u.length < 3 || p.length < 3) { alert("Login i Hasło min. 3 znaki!"); return; }
     let accs = window.getAccounts();
-    if(accs[u]) { alert("Konto o takiej nazwie już istnieje!"); return; }
-    
-    accs[u] = { password: p, saveGame: null };
-    window.saveAccounts(accs); 
-    alert("Konto zostało pomyślnie utworzone. Logowanie...");
-    window.loginAccount();
+    if(accs[u]) { alert("Konto istnieje!"); return; }
+    accs[u] = { password: p, saveGame: null }; window.saveAccounts(accs); 
+    alert("Konto utworzone. Logowanie..."); window.loginAccount();
 };
 
 window.loginAccount = function() {
     let u = document.getElementById('acc-username').value.trim();
     let p = document.getElementById('acc-password').value.trim();
     let accs = window.getAccounts();
-    
     if(accs[u] && accs[u].password === p) {
         window.currentUser = u;
         document.getElementById('login-screen').style.display = 'none'; 
@@ -62,40 +44,25 @@ window.loginAccount = function() {
     } else { alert("Błędny login lub hasło!"); }
 };
 
-window.logoutAccount = function() {
-    clearInterval(window.monsterInterval);
-    window.currentUser = null; 
-    document.getElementById('main-menu').style.display = 'none'; 
-    document.getElementById('login-screen').style.display = 'flex';
-};
+window.logoutAccount = function() { clearInterval(window.monsterInterval); window.currentUser = null; document.getElementById('main-menu').style.display = 'none'; document.getElementById('login-screen').style.display = 'flex'; };
 
 window.saveGame = function() {
     if(!window.currentUser) return;
     const gameState = { player, map, entities, currentLevel, selectedWorld, difficulty, diffMult, logs };
-    let accs = window.getAccounts(); 
-    accs[window.currentUser].saveGame = gameState; 
-    window.saveAccounts(accs);
+    let accs = window.getAccounts(); accs[window.currentUser].saveGame = gameState; window.saveAccounts(accs);
     window.logMsg(`💾 Zapisano grę!`, "log-epic");
 };
 
 window.loadGame = function() {
     if(!window.currentUser) return;
     let accs = window.getAccounts(); let s = accs[window.currentUser].saveGame;
-    if(!s) { alert(`Brak zapisu dla tego konta!`); return; }
-    
-    player = s.player; map = s.map; entities = s.entities; currentLevel = s.currentLevel; 
-    selectedWorld = s.selectedWorld; difficulty = s.difficulty; diffMult = s.diffMult; logs = s.logs || [];
-    
-    document.getElementById('main-menu').style.display = 'none';
-    window.startEngine(false);
-    window.logMsg(`💾 Wczytano grę z chmury.`, "log-epic");
+    if(!s) { alert(`Brak zapisu dla konta!`); return; }
+    player = s.player; map = s.map; entities = s.entities; currentLevel = s.currentLevel; selectedWorld = s.selectedWorld; difficulty = s.difficulty; diffMult = s.diffMult; logs = s.logs || [];
+    document.getElementById('main-menu').style.display = 'none'; window.startEngine(false); window.logMsg(`💾 Wczytano.`, "log-epic");
 };
 
-// ==========================================
-// EKWIPUNEK
-// ==========================================
+// EKWIPUNEK MINECRAFT
 window.getInventoryCount = function(id) { return player.inventory.filter(i => i && i.id === id).reduce((sum, i) => sum + i.count, 0); };
-
 window.removeInventoryItem = function(id, amount) {
     let remaining = amount;
     for(let i = player.inventory.length - 1; i >= 0; i--) {
@@ -141,45 +108,29 @@ window.updateInventoryUI = function() {
 };
 
 window.selectSlot = function(idx) {
-    player.selectedSlot = idx;
-    let item = player.inventory[idx];
-    if(item && ITEM_DB[item.id].type === 'use') {
-        ITEM_DB[item.id].action(player);
-        item.count--; if(item.count <= 0) player.inventory[idx] = null;
-    } else if(item) { window.logMsg(`Wybrano: ${ITEM_DB[item.id].name}`); }
+    player.selectedSlot = idx; let item = player.inventory[idx];
+    if(item && ITEM_DB[item.id].type === 'use') { ITEM_DB[item.id].action(player); item.count--; if(item.count <= 0) player.inventory[idx] = null; } 
+    else if(item) { window.logMsg(`Wybrano: ${ITEM_DB[item.id].name}`); }
     window.updateInventoryUI(); window.updateHUD();
 };
 
-// ==========================================
-// SILNIK I START GRY
-// ==========================================
 window.startGameSingle = function() {
     document.getElementById('main-menu').style.display = 'none';
     difficulty = parseInt(document.getElementById('diff-selector').value);
     diffMult = (difficulty === 2) ? 1.5 : (difficulty === 3 ? 2.0 : 1.0);
-
-    player.hp = 100; player.maxHp = 100; player.coins = 0; 
-    player.weapon = WEAPONS[0]; player.armor = ARMORS[0]; player.belt = BELTS[0];
-    player.inventory.fill(null);
+    player.hp = 100; player.maxHp = 100; player.coins = 0; player.inventory.fill(null);
     window.addToInventory('pot', 2); window.addToInventory('bomb', 1);
-    
     window.startEngine(true);
 };
 
 window.startEngine = function(isNewGame = false) {
-    document.getElementById('game-view').style.display = 'block';
-    state = 'EXPLORE';
+    document.getElementById('game-view').style.display = 'block'; state = 'EXPLORE';
     if(isNewGame || map.length === 0) window.generateLevel(); 
     else { buildCSS3D(map, entities, player, selectedWorld); drawMinimap(map, entities, player); window.updateInventoryUI(); }
     window.updateHUD();
-
     clearInterval(window.monsterInterval);
     if(difficulty > 1) {
-        let speed = difficulty === 3 ? 1000 : 2000;
-        window.monsterInterval = setInterval(() => {
-            if(state === 'EXPLORE') { window.moveMonstersRealTime(); }
-        }, speed);
-        window.logMsg("Potwory aktywne w czasie rzeczywistym!", "log-dmg");
+        window.monsterInterval = setInterval(() => { if(state === 'EXPLORE') window.moveMonstersRealTime(); }, difficulty === 3 ? 1000 : 2000);
     }
 };
 
@@ -187,7 +138,6 @@ window.generateLevel = function() {
     map = []; entities = [];
     for(let z=0; z<MAP_SIZE; z++) { map[z] = []; for(let x=0; x<MAP_SIZE; x++) map[z][x] = T_WALL; }
     player.x = Math.floor(MAP_SIZE/2); player.z = Math.floor(MAP_SIZE/2); map[player.z][player.x] = T_FLOOR;
-
     let floorCount = 0;
     while(floorCount < 180) {
         let d = Math.floor(Math.random()*4);
@@ -195,25 +145,18 @@ window.generateLevel = function() {
         else if(d===2 && player.x>2) player.x--; else if(d===3 && player.x<MAP_SIZE-3) player.x++;
         if(map[player.z][player.x] === T_WALL) { map[player.z][player.x] = T_FLOOR; floorCount++; }
     }
-
     player.x = Math.floor(MAP_SIZE/2); player.z = Math.floor(MAP_SIZE/2); player.dir = 0; player.angle = 0;
-
     let empty = () => { while(true) { let x=Math.floor(Math.random()*MAP_SIZE), z=Math.floor(Math.random()*MAP_SIZE); if(map[z][x]===T_FLOOR && (x!==player.x||z!==player.z)) return {x,z}; } };
-    
     let ex = empty(); map[ex.z][ex.x] = T_EXIT;
     let pm = empty(); map[pm.z][pm.x] = T_MEGA_PORTAL;
-
     for(let i=0; i<3; i++) { let p=empty(); entities.push({x:p.x, z:p.z, sym: '🧪', id: 'pot'}); }
     for(let i=0; i<4; i++) { let p=empty(); entities.push({x:p.x, z:p.z, sym: '🪵', id: 'wood'}); }
     for(let i=0; i<3; i++) { let p=empty(); entities.push({x:p.x, z:p.z, sym: '⛓️', id: 'steel'}); }
-
     let wData = WORLDS[selectedWorld];
-    let mCount = 4 + currentLevel;
-    for(let i=0; i<mCount; i++) {
+    for(let i=0; i<4+currentLevel; i++) {
         let p = empty(); let mob = wData.mobs[Math.floor(Math.random()*wData.mobs.length)];
         entities.push({x:p.x, z:p.z, sym: mob.s, isEnemy: true, name: mob.n, hp: mob.hp*diffMult, maxHp: mob.hp*diffMult, dmg: mob.d*diffMult});
     }
-
     buildCSS3D(map, entities, player, selectedWorld); drawMinimap(map, entities, player); window.updateInventoryUI();
 };
 
@@ -223,15 +166,11 @@ window.updateHUD = function() {
     document.getElementById('ui-coins').innerText = player.coins;
     document.getElementById('ui-dlvl').innerText = currentLevel;
     document.getElementById('ui-worldname').innerText = WORLDS[selectedWorld].title;
-    
     document.getElementById('ch-wep').innerText = player.weapon.name;
     document.getElementById('ch-arm').innerText = player.armor.name;
     document.getElementById('ch-belt').innerText = `${player.belt.name} (Max x${player.belt.cap})`;
 };
 
-// ==========================================
-// RUCH I GONITWA
-// ==========================================
 window.moveMonstersRealTime = function() {
     let combatTriggered = false;
     entities.forEach(e => {
@@ -240,10 +179,7 @@ window.moveMonstersRealTime = function() {
             if(Math.random() > 0.3) { 
                 let targetZ = map[e.z];
                 if(targetZ && Math.random()>0.5 && dx!==0 && targetZ[e.x+dx]===T_FLOOR && !(e.x+dx===player.x && e.z===player.z)) e.x += dx;
-                else {
-                    let targetZPlus = map[e.z+dz];
-                    if(targetZPlus && dz!==0 && targetZPlus[e.x]===T_FLOOR && !(e.x===player.x && e.z+dz===player.z)) e.z += dz;
-                }
+                else { let targetZPlus = map[e.z+dz]; if(targetZPlus && dz!==0 && targetZPlus[e.x]===T_FLOOR && !(e.x===player.x && e.z+dz===player.z)) e.z += dz; }
             }
             if(e.x === player.x && e.z === player.z) { currentEnemy = e; combatTriggered = true; }
         }
@@ -270,7 +206,10 @@ window.movePlayer = function(moveType) {
             if(t === T_MEGA_PORTAL) { window.openOverlay('portal-overlay'); return; }
 
             player.x = nx; player.z = nz;
-            let cam = document.getElementById('camera'); cam.classList.remove('head-bob'); void cam.offsetWidth; cam.classList.add('head-bob');
+            
+            // Poprawione chodzenie! Animacja przypisana do scene, a nie transform kamery!
+            let scene = document.getElementById('scene');
+            scene.classList.remove('head-bob'); void scene.offsetWidth; scene.classList.add('head-bob');
 
             let entIdx = entities.findIndex(e => e.x === nx && e.z === nz);
             if(entIdx !== -1) {
@@ -288,45 +227,25 @@ window.movePlayer = function(moveType) {
     updateCamera(player); drawMinimap(map, entities, player);
 };
 
-// ==========================================
-// KOWAL I PORTALE
-// ==========================================
 window.openCrafting = function() {
-    window.openOverlay('crafting-overlay');
-    let c = document.getElementById('craft-container'); c.innerHTML = '';
+    window.openOverlay('crafting-overlay'); let c = document.getElementById('craft-container'); c.innerHTML = '';
     RECIPES.forEach((r, idx) => {
         let reqStr = Object.entries(r.req).map(([k, v]) => `${ITEM_DB[k].name}:${v}`).join(', ');
         c.innerHTML += `<div style="background:#223; padding:10px; border-radius:6px; border:1px solid #445; font-size:12px; cursor:pointer;" onclick="window.craft(${idx})"><b style="color:#0ff;">${r.name}</b><br><span style="color:#aaa;">Wymaga: ${reqStr}</span></div>`;
     });
 };
-
 window.craft = function(idx) {
     let r = RECIPES[idx]; let canCraft = true;
     for(let key in r.req) { if(window.getInventoryCount(key) < r.req[key]) canCraft = false; }
-    if(canCraft) {
-        for(let key in r.req) { window.removeInventoryItem(key, r.req[key]); }
-        r.action(player); window.openCrafting(); window.updateHUD();
-    } else { window.logMsg("Brakuje surowców w plecaku!", "log-dmg"); }
+    if(canCraft) { for(let key in r.req) { window.removeInventoryItem(key, r.req[key]); } r.action(player); window.openCrafting(); window.updateHUD(); } 
+    else { window.logMsg("Brak surowców!", "log-dmg"); }
 };
+window.travelToWorld = function(wId) { selectedWorld = wId; currentLevel++; window.logMsg(`Przeszedłeś do innego wymiaru!`, "log-epic"); window.closeOverlay('portal-overlay'); window.generateLevel(); };
 
-window.travelToWorld = function(wId) {
-    selectedWorld = wId; currentLevel++; 
-    window.logMsg(`Przeszedłeś do innego wymiaru!`, "log-epic"); 
-    window.closeOverlay('portal-overlay'); window.generateLevel(); 
-};
-
-// ==========================================
-// WALKA
-// ==========================================
-window.updateCombatUI = function() {
-    document.getElementById('c-enemy-hp-bar').style.width = Math.max(0, (currentEnemy.hp / currentEnemy.maxHp) * 100) + '%'; 
-    document.getElementById('c-player-hp-bar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%'; 
-    document.getElementById('c-player-hp-text').innerText = Math.floor(player.hp); 
-};
+window.updateCombatUI = function() { document.getElementById('c-enemy-hp-bar').style.width = Math.max(0, (currentEnemy.hp / currentEnemy.maxHp) * 100) + '%'; document.getElementById('c-player-hp-bar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%'; document.getElementById('c-player-hp-text').innerText = Math.floor(player.hp); };
 
 window.combatAction = function(action) {
     let dmg = player.baseDmg + player.weapon.dmg; let arm = player.baseArmor + player.armor.def;
-
     if(action === 'Zwykly') { currentEnemy.hp -= dmg; window.logMsg(`Zadajesz ${dmg} obr.`); }
     if(action === 'Silny') { if(Math.random()<0.5) { currentEnemy.hp -= dmg*2; window.logMsg(`KRYTYK! ${dmg*2} obr!`, "log-epic"); } else window.logMsg("Pudło!", "log-dmg"); }
     if(action === 'Bomba') { if(window.removeInventoryItem('bomb', 1)) { currentEnemy.hp -= 100; window.logMsg("BUM! 100 obr!"); } else { window.logMsg("Brak bomb!"); return; } }
@@ -339,16 +258,11 @@ window.combatAction = function(action) {
         window.closeOverlay('combat-overlay'); currentEnemy = null; buildCSS3D(map, entities, player, selectedWorld); drawMinimap(map, entities, player); window.updateHUD(); return;
     }
 
-    let enemyDmg = Math.max(1, (currentEnemy.dmg + Math.floor(Math.random()*5)) - arm); 
-    player.hp -= enemyDmg; window.logMsg(`Otrzymujesz ${enemyDmg} obr!`, "log-dmg"); 
-    
-    if(player.hp <= 0) { player.hp = 0; window.logMsg("💀 ZGINĄŁEŚ!", "log-dmg"); clearInterval(window.monsterInterval); alert("Koniec Gry! Odśwież stronę."); location.reload(); }
+    let enemyDmg = Math.max(1, (currentEnemy.dmg + Math.floor(Math.random()*5)) - arm); player.hp -= enemyDmg; window.logMsg(`Otrzymujesz ${enemyDmg} obr!`, "log-dmg"); 
+    if(player.hp <= 0) { player.hp = 0; window.logMsg("💀 ZGINĄŁEŚ!", "log-dmg"); clearInterval(window.monsterInterval); alert("Koniec Gry!"); location.reload(); }
     window.updateCombatUI(); window.updateHUD();
 };
 
-// ==========================================
-// KLAWIATURA
-// ==========================================
 window.addEventListener('keydown', (e) => {
     let k = e.key.toLowerCase();
     if(state === 'EXPLORE') {
@@ -358,7 +272,5 @@ window.addEventListener('keydown', (e) => {
         if(k === 'd' || e.code === 'ArrowRight') window.movePlayer('RIGHT');
         if(k === 'e') window.openOverlay('inventory-overlay');
         if(!isNaN(k) && k > 0 && k <= 9) window.selectSlot(k - 1);
-    } else if (k === 'e' && state === 'MENU') {
-        window.closeOverlay('inventory-overlay'); window.closeOverlay('crafting-overlay'); window.closeOverlay('portal-overlay');
-    }
+    } else if (k === 'e' && state === 'MENU') { window.closeOverlay('inventory-overlay'); window.closeOverlay('crafting-overlay'); window.closeOverlay('portal-overlay'); }
 });
