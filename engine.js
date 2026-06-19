@@ -3,13 +3,17 @@ import { MAP_SIZE } from './data.js';
 const texCanvas = document.createElement('canvas');
 texCanvas.width = 64; texCanvas.height = 64;
 const tCtx = texCanvas.getContext('2d');
-tCtx.fillStyle = '#444'; tCtx.fillRect(0,0,64,64);
-tCtx.fillStyle = '#222';
-for(let i=0; i<64; i+=16) { tCtx.fillRect(0, i, 64, 2); for(let j=0; j<64; j+=16) tCtx.fillRect(j + (i%32===0?0:8), i, 2, 16); }
 
-export function render3D(ctx, map, entities, player, otherPlayer) {
+function genTex(color1, color2) {
+    tCtx.fillStyle = color1; tCtx.fillRect(0,0,64,64); tCtx.fillStyle = color2;
+    for(let i=0; i<64; i+=16) { tCtx.fillRect(0, i, 64, 2); for(let j=0; j<64; j+=16) tCtx.fillRect(j + (i%32===0?0:8), i, 2, 16); }
+}
+
+export function render3D(ctx, map, entities, player, otherPlayer, isSafeZone) {
     const w = ctx.canvas.width; const h = ctx.canvas.height;
     ctx.fillStyle = '#111'; ctx.fillRect(0, 0, w, h/2); ctx.fillStyle = '#2a2a2a'; ctx.fillRect(0, h/2, w, h/2);
+
+    if(isSafeZone) genTex('#2a4', '#152'); else genTex('#444', '#222'); // Inna ściana w Safe Zone!
 
     let zBuffer = new Array(w).fill(0);
 
@@ -41,15 +45,18 @@ export function render3D(ctx, map, entities, player, otherPlayer) {
         zBuffer[x] = perpWallDist;
         let lineHeight = Math.floor(h / perpWallDist);
         let drawStart = -lineHeight / 2 + h / 2;
-        let wallX;
-        if(side === 0) wallX = player.y + perpWallDist * rayDirY; else wallX = player.x + perpWallDist * rayDirX;
+        
+        let wallX; if(side === 0) wallX = player.y + perpWallDist * rayDirY; else wallX = player.x + perpWallDist * rayDirX;
         wallX -= Math.floor(wallX);
         let texX = Math.floor(wallX * 64);
         if(side === 0 && rayDirX > 0) texX = 64 - texX - 1; if(side === 1 && rayDirY < 0) texX = 64 - texX - 1;
 
         ctx.drawImage(texCanvas, texX, 0, 1, 64, x, drawStart, 1, lineHeight);
+        
         let shadow = (side === 1 ? 0.3 : 0.0) + Math.min(0.8, perpWallDist * 0.05);
-        if(hitType === 3) ctx.fillStyle = `rgba(0, 255, 0, 0.4)`; else ctx.fillStyle = `rgba(0, 0, 0, ${shadow})`;
+        if(hitType === 3) ctx.fillStyle = `rgba(0, 255, 0, 0.4)`; // EXIT
+        else if(hitType === 4) ctx.fillStyle = `rgba(0, 255, 255, 0.4)`; // PORTAL
+        else ctx.fillStyle = `rgba(0, 0, 0, ${shadow})`;
         ctx.fillRect(x, drawStart, 1, lineHeight);
     }
 
@@ -79,7 +86,7 @@ export function drawMinimap(ctx, map, entities, player, otherPlayer) {
     ctx.fillStyle = '#0a0a0f'; ctx.fillRect(0, 0, W, W);
     for(let y=0; y<MAP_SIZE; y++) {
         for(let x=0; x<MAP_SIZE; x++) {
-            if(map[y][x] === 0) ctx.fillStyle = '#334'; else if(map[y][x]===3) ctx.fillStyle='#0f0'; else continue;
+            if(map[y][x] === 0) ctx.fillStyle = '#334'; else if(map[y][x]===3) ctx.fillStyle='#0f0'; else if(map[y][x]===4) ctx.fillStyle='#0ff'; else continue;
             ctx.fillRect(x*TS, y*TS, TS+1, TS+1);
         }
     }
