@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy Odyssey 3D - Raycaster Engine</title>
+    <title>Fantasy Odyssey 3D - Ultimate FPS RPG</title>
     <link rel="stylesheet" href="./style.css">
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 </head>
 <body>
+    <script>window.onerror = function(msg, url, line) { alert("BŁĄD: " + msg + "\nLinia: " + line); };</script>
+
     <div id="login-screen" class="fullscreen-ui">
         <div class="panel-box">
             <h1>FANTASY ODYSSEY</h1>
-            <p style="color:#aaa;">Prawdziwy Silnik Raycaster (Wolfenstein 3D Style)</p>
+            <p style="color:#aaa;">FPS, Fabuła, Klasy i Kooperacja</p>
             <input type="text" id="acc-username" placeholder="Twój Login (min. 3 znaki)">
             <input type="password" id="acc-password" placeholder="Hasło (min. 3 znaki)">
             <button id="btn-login" class="btn green">Zaloguj się</button>
@@ -22,25 +25,71 @@
         <div class="panel-box">
             <h1>MENU GŁÓWNE</h1>
             <p style="color:#5f5;">Witaj, <b id="logged-user-name"></b>!</p>
-            <button id="btn-load" class="btn gold">💾 Wczytaj Grę</button>
-            <hr style="border-color:#334; margin: 20px 0;">
+            <button id="btn-load" class="btn gold">💾 Wczytaj Zapisaną Grę</button>
+            <hr style="border-color:#334; margin: 15px 0;">
+            
             <select id="diff-selector">
-                <option value="1">Trudność: Łatwy (Potwory stoją)</option>
-                <option value="2" selected>Trudność: Normalny (Gonitwa)</option>
+                <option value="1">Trudność: Łatwy (Kary za śmierć: -25%)</option>
+                <option value="2" selected>Trudność: Normalny (Kary za śmierć: -50%)</option>
+                <option value="3">Trudność: HARDCORE (Kary za śmierć: -75%)</option>
             </select>
-            <button id="btn-new-game" class="btn green">Nowa Gra</button>
+            <button class="btn green" onclick="window.openCharSelect('single')">Start Singleplayer</button>
+            
+            <hr style="border-color:#334; margin: 15px 0;">
+            <h3 style="color:#0ff; margin:0 0 10px 0;">KOOPERACJA</h3>
+            <button class="btn blue" onclick="window.openCharSelect('host')">Załóż Pokój (HOST)</button>
+            <input type="text" id="join-id" placeholder="Wklej ID Hosta...">
+            <button class="btn blue" onclick="window.openCharSelect('join')">Dołącz do Gry</button>
+            
+            <hr style="border-color:#334; margin: 15px 0;">
             <button id="btn-logout" class="btn red">Wyloguj</button>
+        </div>
+    </div>
+
+    <div id="char-select-screen" class="fullscreen-ui" style="display:none; z-index: 1500;">
+        <div class="panel-box" style="max-width:750px;">
+            <h1>WYBIERZ BOHATERA</h1>
+            <p style="color:#aaa;">Każda z postaci ma inne statystyki startowe. Kogo wybierasz?</p>
+            <div class="inv-grid" style="grid-template-columns: 1fr 1fr; gap:15px; background:transparent; border:none; box-shadow:none;">
+                <div class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(0)">
+                    <h3 style="color:#fc0; margin:0;">Michał Kutas (Wojownik)</h3>
+                    <p style="font-size:12px; margin-bottom:0;">HP: 150 | Dmg: 15. Prawdziwy czołg z dużą wytrzymałością.</p>
+                </div>
+                <div class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(1)">
+                    <h3 style="color:#0ff; margin:0;">Dżon Pinat (Mag)</h3>
+                    <p style="font-size:12px; margin-bottom:0;">HP: 60 | Dmg: 35. Potężne uderzenie, ale szklane zdrowie.</p>
+                </div>
+                <div class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(2)">
+                    <h3 style="color:#5f5; margin:0;">Gibki Gibek (Łotr)</h3>
+                    <p style="font-size:12px; margin-bottom:0;">HP: 90 | Dmg: 25. Zbalansowany rzezimieszek zwinny jak kot.</p>
+                </div>
+                <div class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(3)">
+                    <h3 style="color:#f5f; margin:0;">Paskalito (Łucznik)</h3>
+                    <p style="font-size:12px; margin-bottom:0;">HP: 80 | Dmg: 30. Strzelec celujący w same głowy.</p>
+                </div>
+            </div>
+            <button class="btn red" style="margin-top:20px;" onclick="location.reload()">Anuluj i Wróć</button>
+        </div>
+    </div>
+
+    <div id="loading-screen" class="fullscreen-ui" style="display:none; z-index:2000;">
+        <div class="panel-box">
+            <h2 style="color:#0ff;">TWÓJ KOD POKOJU:</h2>
+            <h1 id="mp-room-id" style="color:#fff; background:#000; padding:15px; border:1px solid #0ff; font-size:20px; word-break: break-all;">GENEROWANIE...</h1>
+            <p style="color:#aaa;">Wyślij go znajomemu. Oczekiwanie na dołączenie gracza...</p>
         </div>
     </div>
 
     <div id="game-view" style="display:none;">
         <canvas id="gameCanvas" width="800" height="600"></canvas>
-        
+        <div id="crosshair">+</div>
         <div id="weapon-view">👊</div>
+        <div id="pointer-lock-info">Kliknij w ekran, by odblokować celowanie myszką! (W,A,S,D chodzi, E otwiera plecak)</div>
         
         <div id="hud">
             <canvas id="minimap" width="160" height="160"></canvas>
             <div class="hud-stats">
+                Klasa: <span id="ui-class" style="color:#fff;">-</span><br>
                 HP: <span id="ui-hp" style="color:#f55;">100</span> / <span id="ui-maxhp">100</span><br>
                 Złoto: <span id="ui-coins" style="color:#fc0;">0</span><br>
                 Piętro: <span id="ui-dlvl">1</span>
@@ -50,6 +99,14 @@
 
         <div id="hotbar-container">
             <div class="inv-grid hotbar" id="inv-hotbar"></div>
+        </div>
+
+        <div id="dialog-overlay" class="overlay-ui">
+            <div class="panel-box" style="border-color:#0ff;">
+                <h2 id="dialog-name" style="color:#0ff; border-color:#0ff;">NPC</h2>
+                <p id="dialog-text" style="font-size:16px; font-style:italic; margin: 20px 0; color:#ddd;">"Tekst..."</p>
+                <button class="btn blue" onclick="window.closeDialog()">Dalej (E)</button>
+            </div>
         </div>
 
         <div id="inventory-overlay" class="overlay-ui">
