@@ -1,38 +1,90 @@
-import { WORLDS, DIRS } from './data.js';
+import { MAP_SIZE, TILE_SIZE, T_WALL, T_FLOOR, T_DOOR, T_EXIT, T_PORTAL, T_MEGA_PORTAL, WORLDS } from './data.js';
 
-export function draw3D(ctx, player, map, entities, selectedWorld, currentBiomeIndex, savedMainMap, isMultiplayer, otherPlayer) {
-    const T_WALL = 1, T_DOOR = 2, T_EXIT = 3, T_PORTAL = 4, T_MEGA_PORTAL = 5;
-    let b = savedMainMap ? WORLDS[selectedWorld].biomes[0] : WORLDS[selectedWorld].biomes[currentBiomeIndex]; 
-    ctx.fillStyle = b.floor; ctx.fillRect(0, 240, 600, 240); 
-    ctx.fillStyle = '#050505'; ctx.fillRect(0, 0, 600, 240); 
+export function createBlock(x, z, baseClass, innerHtml, container) {
+    const faces = [ 
+        { rx: 0, ry: 0, tz: TILE_SIZE/2 }, 
+        { rx: 0, ry: 180, tz: TILE_SIZE/2 }, 
+        { rx: 0, ry: 90, tz: TILE_SIZE/2 }, 
+        { rx: 0, ry: -90, tz: TILE_SIZE/2 } 
+    ];
+    faces.forEach(f => {
+        let face = document.createElement('div'); 
+        face.className = baseClass; 
+        if(innerHtml) face.innerHTML = innerHtml;
+        face.style.transform = `translate3d(${x*TILE_SIZE}px, 0, ${z*TILE_SIZE}px) rotateY(${f.ry}deg) translateZ(${f.tz}px)`;
+        container.appendChild(face);
+    });
+}
 
-    const polyOffsets = [ {w: 600, h: 480, y: 0}, {w: 360, h: 288, y: 96}, {w: 180, h: 144, y: 168}, {w: 80, h: 64, y: 208}, {w: 20, h: 16, y: 232} ];
-    let forward = DIRS[player.dir], right = DIRS[(player.dir + 1) % 4], left = DIRS[(player.dir + 3) % 4];
+export function buildCSS3D(map, entities, player, selectedWorld) {
+    let world = document.getElementById('world'); 
+    world.innerHTML = ''; 
+    let texClass = WORLDS[selectedWorld].tex;
 
-    for(let d = 3; d >= 0; d--) {
-        let tx = player.x + forward.dx * d; let ty = player.y + forward.dy * d;
-        let pCurrent = polyOffsets[d], pNext = polyOffsets[d+1]; let cxCurrent = 300, cyCurrent = 240;
-        let getTile = (vx, vy) => (map[vy] && map[vy][vx] !== undefined) ? map[vy][vx] : T_WALL;
-        let tileFront = getTile(tx, ty), tileLeft = getTile(tx + left.dx, ty + left.dy), tileRight = getTile(tx + right.dx, ty + right.dy);
-
-        const drawWallSide = (isLeft, color) => {
-            let x1 = isLeft ? (cxCurrent - pCurrent.w/2) : (cxCurrent + pCurrent.w/2); let x2 = isLeft ? (cxCurrent - pNext.w/2) : (cxCurrent + pNext.w/2);
-            ctx.beginPath(); ctx.moveTo(x1, cyCurrent - pCurrent.h/2); ctx.lineTo(x2, cyCurrent - pNext.h/2);
-            ctx.lineTo(x2, cyCurrent + pNext.h/2); ctx.lineTo(x1, cyCurrent + pCurrent.h/2); ctx.fillStyle = color; ctx.fill(); ctx.stroke();
-        };
-
-        if(tileLeft === T_WALL) drawWallSide(true, b.wall); if(tileRight === T_WALL) drawWallSide(false, b.wall);
-        
-        if(tileFront === T_WALL || tileFront === T_DOOR || tileFront === T_EXIT || tileFront === T_PORTAL || tileFront === T_MEGA_PORTAL) {
-            let wx = cxCurrent - pCurrent.w/2, wy = cyCurrent - pCurrent.h/2;
-            if(tileFront === T_DOOR) ctx.fillStyle = b.door; else if(tileFront === T_EXIT) ctx.fillStyle = '#888'; else if(tileFront === T_PORTAL) ctx.fillStyle = '#aa00ff'; else if(tileFront === T_MEGA_PORTAL) ctx.fillStyle = '#00ffff'; else ctx.fillStyle = b.wall;
-            ctx.fillRect(wx, wy, pCurrent.w, pCurrent.h); ctx.strokeRect(wx, wy, pCurrent.w, pCurrent.h);
-            if(tileFront === T_EXIT) { ctx.fillStyle = '#fff'; ctx.font = `bold ${pCurrent.h/5}px Verdana`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(b.exitText, cxCurrent, cyCurrent); }
-        } else {
-            ctx.beginPath(); ctx.moveTo(cxCurrent - pCurrent.w/2, cyCurrent + pCurrent.h/2); ctx.lineTo(cxCurrent + pCurrent.w/2, cyCurrent + pCurrent.h/2); ctx.lineTo(cxCurrent + pNext.w/2, cyCurrent + pNext.h/2); ctx.lineTo(cxCurrent - pNext.w/2, cyCurrent + pNext.h/2); ctx.fillStyle = (d%2===0)?'rgba(0,0,0,0.2)':'rgba(0,0,0,0.5)'; ctx.fill();
-            let ent = entities.find(e => e.x === tx && e.y === ty);
-            if(ent) { ctx.font = `${pCurrent.h * 0.7}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText(ent.symbol, cxCurrent, cyCurrent + pCurrent.h/2 + 5); }
-            if(isMultiplayer && otherPlayer && otherPlayer.x === tx && otherPlayer.y === ty) { ctx.font = `${pCurrent.h * 0.7}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom'; ctx.fillText("🧙‍♂️", cxCurrent, cyCurrent + pCurrent.h/2 + 5); }
+    for(let z=0; z<MAP_SIZE; z++) {
+        for(let x=0; x<MAP_SIZE; x++) {
+            let t = map[z][x];
+            if(t !== T_FLOOR) {
+                let cls = `wall ${t === T_WALL ? texClass : ''}`;
+                let html = "";
+                if(t === T_PORTAL || t === T_MEGA_PORTAL) { cls += ' tex-portal'; html = "<div class='wall-text'>WYMIAR</div>"; }
+                if(t === T_EXIT) { cls += ' tex-exit'; html = "<div class='wall-text'>WYJŚCIE</div>"; }
+                createBlock(x, z, cls, html, world);
+            }
         }
     }
+
+    entities.forEach(e => {
+        let s = document.createElement('div'); 
+        s.className = 'sprite'; 
+        s.innerHTML = e.sym; 
+        s.id = `ent_${e.x}_${e.z}`;
+        s.style.transform = `translate3d(${e.x*TILE_SIZE}px, 0, ${e.z*TILE_SIZE}px) rotateY(${-player.angle}deg)`;
+        world.appendChild(s);
+    });
+
+    updateCamera(player);
+}
+
+export function updateCamera(player) {
+    let px = player.x * TILE_SIZE; 
+    let pz = player.z * TILE_SIZE;
+    // Odsunięcie kamery translateZ(200px) poprawia widoczność "oczu" gracza
+    document.getElementById('world').style.transform = `translateZ(200px) rotateY(${-player.angle}deg) translate3d(${-px}px, 0, ${-pz}px)`;
+    
+    document.querySelectorAll('.sprite').forEach(s => {
+        let coords = s.id.split('_'); let ex = coords[1] * TILE_SIZE; let ez = coords[2] * TILE_SIZE;
+        s.style.transform = `translate3d(${ex}px, 0, ${ez}px) rotateY(${player.angle}deg)`;
+    });
+}
+
+export function drawMinimap(map, entities, player) {
+    const canvas = document.getElementById('minimap');
+    if(!canvas) return;
+    const mCtx = canvas.getContext('2d');
+    const W = canvas.width; 
+    const TS = W / MAP_SIZE;
+    
+    mCtx.fillStyle = '#0a0a0f'; mCtx.fillRect(0, 0, W, W);
+    for(let z=0; z<MAP_SIZE; z++) {
+        for(let x=0; x<MAP_SIZE; x++) {
+            if(map[z][x] === T_FLOOR) mCtx.fillStyle = '#334'; 
+            else if(map[z][x]===T_EXIT) mCtx.fillStyle='#aaa'; 
+            else if(map[z][x]===T_MEGA_PORTAL) mCtx.fillStyle='#0ff'; 
+            else continue;
+            mCtx.fillRect(x*TS, z*TS, TS+0.5, TS+0.5);
+        }
+    }
+    entities.forEach(e => { 
+        mCtx.fillStyle = e.isEnemy ? '#f33' : '#fc0'; 
+        mCtx.fillRect(e.x*TS+1, e.z*TS+1, TS-2, TS-2); 
+    });
+    
+    mCtx.save(); 
+    mCtx.translate(player.x * TS + TS/2, player.z * TS + TS/2); 
+    mCtx.rotate(player.dir * Math.PI/2); 
+    mCtx.fillStyle = '#5f5'; mCtx.beginPath(); 
+    mCtx.moveTo(0, -TS/2); mCtx.lineTo(TS/2, TS/2); mCtx.lineTo(-TS/2, TS/2); 
+    mCtx.fill(); 
+    mCtx.restore();
 }
