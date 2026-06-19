@@ -21,25 +21,52 @@ input:focus { border-color: #daaa00; box-shadow: 0 0 10px rgba(218,170,0,0.3); }
 .btn.red { background: linear-gradient(to bottom, #500, #200); border-color: #f55; color: #f55; }
 .btn.blue { background: linear-gradient(to bottom, #003, #001); border-color: #0ff; color: #0ff; }
 
-/* === PRAWDZIWY SILNIK 3D === */
+/* === SILNIK 3D === */
 #game-view { position: relative; width: 100vw; height: 100vh; overflow: hidden; background: #020202; }
 #scene { position: absolute; width: 100%; height: 100%; perspective: 500px; }
 #camera { transform-style: preserve-3d; width: 100%; height: 100%; position: absolute; }
-#world { transform-style: preserve-3d; position: absolute; left: 50%; top: 50%; transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1); }
+#world { transform-style: preserve-3d; position: absolute; left: 50%; top: 50%; transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1); }
 
+/* Vinieta i Scanlines */
 .scanlines { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 10; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 3px, 3px 100%; box-shadow: inset 0 0 150px rgba(0,0,0,0.9); }
-.head-bob { animation: bob 0.5s ease-in-out; }
-@keyframes bob { 0% { top: 50%; } 50% { top: 52%; } 100% { top: 50%; } }
 
-.wall { position: absolute; width: 300px; height: 300px; margin-left: -150px; margin-top: -150px; background-size: cover; background-position: center; border: 1px solid rgba(0,0,0,0.8); box-shadow: inset 0 0 150px rgba(0,0,0,0.9); }
-.tex-human { background-image: url('https://images.unsplash.com/photo-1588344605929-3d12d26fdf7c?q=80&w=400'); } 
-.tex-elf { background-image: url('https://images.unsplash.com/photo-1610448154131-030f2cc4f388?q=80&w=400'); } 
-.tex-dwarf { background-image: url('https://images.unsplash.com/photo-1546484396-fb3fc6f95f98?q=80&w=400'); } 
+/* NAPRAWIONE TRZĘSIENIE KAMERY (Brak teleportowania) */
+.head-bob { animation: bob 0.4s ease-out; }
+@keyframes bob { 
+    0% { transform: translateY(0px); } 
+    50% { transform: translateY(15px); } 
+    100% { transform: translateY(0px); } 
+}
+
+/* === NAPRAWIONE TEKSTURY === */
+.wall { 
+    position: absolute; width: 300px; height: 300px; 
+    margin-left: -150px; margin-top: -150px; 
+    backface-visibility: hidden; /* Naprawia widzenie przez ściany */
+    background-color: #222; /* Tło awaryjne */
+    border: 2px solid #111;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.95); /* Głęboki mrok */
+}
+
+/* Własne procedularne tekstury CSS (Zawsze działają, zero lagów) */
+.tex-human { 
+    background-color: #3b3a36;
+    background-image: linear-gradient(335deg, rgba(0,0,0,0.4) 23px, transparent 23px), linear-gradient(155deg, rgba(0,0,0,0.4) 23px, transparent 23px), linear-gradient(335deg, rgba(0,0,0,0.4) 23px, transparent 23px), linear-gradient(155deg, rgba(0,0,0,0.4) 23px, transparent 23px);
+    background-size: 58px 58px; background-position: 0px 2px, 4px 35px, 29px 31px, 34px 6px;
+} 
+.tex-elf { 
+    background-color: #05150a;
+    background-image: linear-gradient(135deg, #0a2a1a 25%, transparent 25%) -50px 0, linear-gradient(225deg, #0a2a1a 25%, transparent 25%) -50px 0, linear-gradient(315deg, #0a2a1a 25%, transparent 25%), linear-gradient(45deg, #0a2a1a 25%, transparent 25%);
+    background-size: 100px 100px;
+} 
+.tex-dwarf { 
+    background: radial-gradient(circle at center, #820 0%, #200 100%); border: 2px solid #f50; 
+} 
 .tex-portal { background: radial-gradient(circle, #0ff 0%, #003 100%); opacity: 0.9; box-shadow: 0 0 100px #0ff; }
 .tex-exit { background: #111; display:flex; align-items:center; justify-content:center; }
 .wall-text { color: #fff; font-size: 30px; font-weight: bold; text-shadow: 0 0 10px #fff; }
 
-.sprite { position: absolute; width: 300px; height: 300px; margin-left: -150px; margin-top: -150px; display: flex; align-items: center; justify-content: center; font-size: 150px; filter: drop-shadow(0 20px 30px rgba(0,0,0,1)); transform-style: preserve-3d; transition: transform 0.3s linear; }
+.sprite { position: absolute; width: 300px; height: 300px; margin-left: -150px; margin-top: -150px; display: flex; align-items: center; justify-content: center; font-size: 130px; filter: drop-shadow(0 20px 30px rgba(0,0,0,1)); transform-style: preserve-3d; transition: transform 0.3s linear; }
 
 /* === HUD ORAZ MINECRAFT EKWIPUNEK === */
 #hud { position: absolute; top: 20px; left: 20px; z-index: 100; pointer-events: none; }
@@ -66,6 +93,7 @@ canvas#minimap { background: rgba(5,5,8,0.9); border: 2px solid #445; border-rad
 .bar-fill { height: 100%; background: #f00; transition: width 0.3s; }
 #enemy-sprite { font-size: 140px; margin: 20px 0; animation: breathe 1.5s infinite alternate ease-in-out; filter: drop-shadow(0 0 30px rgba(255,0,0,0.6)); }
 .combat-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
 @keyframes breathe { 0% { transform: scale(1); } 100% { transform: scale(1.1) translateY(-15px); } }
 
 #mobile-controls { display: none; position: absolute; bottom: 100px; right: 20px; z-index: 150; grid-template-columns: 1fr 1fr 1fr; gap: 10px; justify-items: center;}
