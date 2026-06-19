@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fantasy Odyssey 3D - Ultimate RPG</title>
+    <title>Fantasy Odyssey 3D - Raycaster Engine</title>
     <link rel="stylesheet" href="./style.css">
+    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
 </head>
 <body>
     <script>window.onerror = function(msg, url, line) { alert("BŁĄD: " + msg + "\nLinia: " + line); };</script>
@@ -12,7 +13,7 @@
     <div id="login-screen" class="fullscreen-ui">
         <div class="panel-box">
             <h1>FANTASY ODYSSEY</h1>
-            <p style="color:#aaa;">Pełnoprawny RPG, Sub-Leveles & Tryb 18+</p>
+            <p style="color:#aaa;">Prawdziwy Silnik Raycaster (Wolfenstein 3D)</p>
             <input type="text" id="acc-username" placeholder="Twój Login (min. 3 znaki)">
             <input type="password" id="acc-password" placeholder="Hasło (min. 3 znaki)">
             <button class="btn green" onclick="window.loginAccount()">Zaloguj się</button>
@@ -32,7 +33,12 @@
                 <option value="3">Trudność: HARDCORE</option>
             </select>
             <label class="checkbox"><input type="checkbox" id="mode-18plus"> Aktywuj Tryb 18+ (Używki i Kurtyzany)</label>
-            <button class="btn green" onclick="window.openCharSelect()">Nowa Gra</button>
+            <button class="btn green" onclick="window.openCharSelect('single')">Nowa Gra (Singleplayer)</button>
+            <hr style="border-color:#334; margin: 15px 0;">
+            <h3 style="color:#0ff; margin:0 0 10px 0;">KOOPERACJA P2P</h3>
+            <button class="btn blue" onclick="window.openCharSelect('host')">Załóż Pokój (HOST)</button>
+            <input type="text" id="join-id" placeholder="Wklej ID Hosta...">
+            <button class="btn blue" onclick="window.openCharSelect('join')">Dołącz do Gry</button>
             <button class="btn red" onclick="window.logoutAccount()" style="margin-top:15px;">Wyloguj</button>
         </div>
     </div>
@@ -41,21 +47,17 @@
         <div class="panel-box" style="max-width:750px;">
             <h1>WYBIERZ BOHATERA</h1>
             <div class="inv-grid" style="grid-template-columns: 1fr 1fr; gap:15px; background:transparent; border:none; box-shadow:none;">
-                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(0)">
-                    <h3 style="color:#fc0; margin:0;">Michał Kutas (Wojownik)</h3><p style="font-size:12px;">HP: 150 | Dmg: 15</p>
-                </button>
-                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(1)">
-                    <h3 style="color:#0ff; margin:0;">Dżon Pinat (Mag)</h3><p style="font-size:12px;">HP: 60 | Dmg: 35</p>
-                </button>
-                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(2)">
-                    <h3 style="color:#5f5; margin:0;">Gibki Gibek (Łotr)</h3><p style="font-size:12px;">HP: 90 | Dmg: 25</p>
-                </button>
-                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(3)">
-                    <h3 style="color:#f5f; margin:0;">Paskalito (Łucznik)</h3><p style="font-size:12px;">HP: 80 | Dmg: 30</p>
-                </button>
+                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(0)"><h3 style="color:#fc0; margin:0;">Wojownik</h3><p style="font-size:12px;">HP: 150 | Dmg: 15</p></button>
+                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(1)"><h3 style="color:#0ff; margin:0;">Mag</h3><p style="font-size:12px;">HP: 60 | Dmg: 35</p></button>
+                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(2)"><h3 style="color:#5f5; margin:0;">Łotr</h3><p style="font-size:12px;">HP: 90 | Dmg: 25</p></button>
+                <button class="btn" style="height:auto; padding:20px;" onclick="window.selectHero(3)"><h3 style="color:#f5f; margin:0;">Łucznik</h3><p style="font-size:12px;">HP: 80 | Dmg: 30</p></button>
             </div>
             <button class="btn red" style="margin-top:20px;" onclick="location.reload()">Anuluj</button>
         </div>
+    </div>
+
+    <div id="loading-screen" class="fullscreen-ui" style="display:none; z-index:2000;">
+        <div class="panel-box"><h2 style="color:#0ff;">KOD POKOJU:</h2><h1 id="mp-room-id" style="color:#fff; background:#000; padding:15px; border:1px solid #0ff;">GENEROWANIE...</h1></div>
     </div>
 
     <div id="game-view" style="display:none;">
@@ -70,23 +72,18 @@
                 <span id="ui-safezone" style="color:#0f0; font-weight:bold; display:none;">🌿 SAFE ZONE<br></span>
                 HP: <span id="ui-hp" style="color:#f55;">100</span> / <span id="ui-maxhp">100</span><br>
                 Złoto: <span id="ui-coins" style="color:#fc0;">0</span><br>
-                Świat: <span id="ui-worldname" style="color:#0ff;">-</span><br>
                 Poziom: <span id="ui-dlvl">1-1</span>
             </div>
             <div id="log-box"></div>
         </div>
 
-        <div id="hotbar-container">
-            <div class="inv-grid hotbar" id="inv-hotbar"></div>
-        </div>
+        <div id="hotbar-container"><div class="inv-grid hotbar" id="inv-hotbar"></div></div>
 
         <div id="dialog-overlay" class="overlay-ui">
             <div class="panel-box" style="border-color:#0ff;">
                 <h2 id="dialog-name" style="color:#0ff;">NPC</h2>
                 <p id="dialog-text" style="font-size:16px; font-style:italic; margin: 20px 0;">"Tekst..."</p>
-                <div id="dialog-actions" style="display:none; gap:10px; margin-bottom:15px;">
-                    <button class="btn gold" onclick="window.payHooker()">Zapłać 50 monet (Noc Uciech)</button>
-                </div>
+                <div id="dialog-actions" style="display:none; gap:10px; margin-bottom:15px;"><button class="btn gold" onclick="window.payHooker()">Zapłać 50 monet</button></div>
                 <button class="btn blue" onclick="window.closeDialog()">Odejdź</button>
             </div>
         </div>
@@ -94,27 +91,20 @@
         <div id="inventory-overlay" class="overlay-ui">
             <div class="panel-box" style="max-width: 700px; background:#c6c6c6; color:#000;">
                 <h2 style="color:#333; border-bottom:2px solid #555; display:flex; justify-content:space-between;">
-                    <span>PLECAK</span> 
-                    <span style="font-size:14px; color:#555;">Poziom Bohatera: <span id="ch-lvl">1</span> | XP: <span id="ch-xp">0</span>/<span id="ch-req">100</span> <button onclick="window.levelUp()" style="background:#5a5; color:#fff; border:none; padding:5px; border-radius:5px; cursor:pointer;">AWANSUJ</button></span>
+                    <span>PLECAK</span> <span style="font-size:14px; color:#555;">XP: <span id="ch-xp">0</span>/<span id="ch-req">100</span> <button onclick="window.levelUp()" style="background:#5a5; color:#fff; border:none; padding:5px; border-radius:5px; cursor:pointer;">AWANSUJ</button></span>
                 </h2>
-                
                 <div class="mc-paper-doll">
                     <div class="mc-armor-col">
-                        <div class="mc-slot" id="ui-eq-helm" title="Hełm"></div>
-                        <div class="mc-slot" id="ui-eq-chest" title="Napiersnik"></div>
-                        <div class="mc-slot" id="ui-eq-pants" title="Spodnie"></div>
-                        <div class="mc-slot" id="ui-eq-boots" title="Buty"></div>
+                        <div class="mc-slot" id="ui-eq-helm" title="Hełm"></div><div class="mc-slot" id="ui-eq-chest" title="Napiersnik"></div>
+                        <div class="mc-slot" id="ui-eq-pants" title="Spodnie"></div><div class="mc-slot" id="ui-eq-boots" title="Buty"></div>
                     </div>
-                    <div class="mc-player-model">🕴️<br><span style="font-size:12px; font-weight:bold; color:#000;">DEF: <span id="ch-def">0</span></span></div>
+                    <div class="mc-player-model">🕴️<br><span style="font-size:12px; font-weight:bold;">DEF: <span id="ch-def">0</span></span></div>
                     <div class="mc-wep-col">
-                        <div class="mc-slot" id="ui-eq-wep" title="Broń"></div>
-                        <div class="mc-slot" id="ui-eq-belt" title="Pas"></div>
+                        <div class="mc-slot" id="ui-eq-wep" title="Broń"></div><div class="mc-slot" id="ui-eq-belt" title="Pas"></div>
                         <div style="font-size:12px; font-weight:bold; margin-top:10px; color:#500;">ATAK: <span id="ch-dmg">5</span></div>
                     </div>
                 </div>
-
                 <div class="inv-grid" id="inv-grid-main"></div>
-                
                 <div style="display:flex; gap:10px; margin-top:20px;">
                     <button class="btn" style="background:#555; color:#fff;" onclick="window.openOverlay('crafting-overlay')">Kowal (Crafting)</button>
                     <button class="btn" style="background:#262; color:#fff;" onclick="window.saveGame()">Zapisz Grę</button>
@@ -123,29 +113,13 @@
             </div>
         </div>
 
-        <div id="perk-overlay" class="overlay-ui">
-            <div class="panel-box" style="max-width:700px; border-color:#5f5;">
-                <h2 style="color:#5f5;">AWANS! WYBIERZ PERK</h2>
-                <div id="perk-container" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;"></div>
-            </div>
-        </div>
+        <div id="perk-overlay" class="overlay-ui"><div class="panel-box" style="max-width:700px; border-color:#5f5;"><h2 style="color:#5f5;">AWANS! WYBIERZ PERK</h2><div id="perk-container" style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px;"></div></div></div>
 
         <div id="crafting-overlay" class="overlay-ui">
             <div class="panel-box" style="background:#c6c6c6; color:#000; max-width:750px;">
                 <h2 style="color:#333; border-bottom:2px solid #555;">KOWALSTWO (25 Receptur)</h2>
                 <div id="craft-container" style="display:grid; grid-template-columns:1fr 1fr; gap:10px; text-align:left; max-height:400px; overflow-y:auto; padding-right:10px;"></div>
                 <button class="btn" style="background:#555; color:#fff; margin-top:20px;" onclick="window.openOverlay('inventory-overlay')">Wróć do Plecaka</button>
-            </div>
-        </div>
-
-        <div id="portal-overlay" class="overlay-ui">
-            <div class="panel-box" style="border-color:#0ff;">
-                <h2 style="color:#0ff;">🌌 PORTAL WYMIARÓW</h2>
-                <button class="btn" onclick="window.travelToWorld('human')">Ludzkie Królestwa</button>
-                <button class="btn" onclick="window.travelToWorld('elf')">Świat Elfów</button>
-                <button class="btn" onclick="window.travelToWorld('dwarf')">Kopalnie Krasnoludów</button>
-                <button class="btn" onclick="window.travelToWorld('homunculus')">Laboratoria Homunkulusów</button>
-                <button class="btn red" onclick="window.closeAllOverlays()">Anuluj</button>
             </div>
         </div>
 
@@ -157,10 +131,8 @@
                 </div>
                 <div id="enemy-sprite">👹</div>
                 <div class="combat-actions">
-                    <button class="btn" onclick="window.combatAction('Zwykly')">Atak (LPM)</button>
-                    <button class="btn red" onclick="window.combatAction('Silny')">Mocny Cios</button>
-                    <button class="btn green" onclick="window.combatAction('Mikstura')">Lecz</button>
-                    <button class="btn gold" onclick="window.combatAction('Bomba')">Bomba</button>
+                    <button class="btn" onclick="window.combatAction('Zwykly')">Atak (LPM)</button><button class="btn red" onclick="window.combatAction('Silny')">Mocny Cios</button>
+                    <button class="btn green" onclick="window.combatAction('Mikstura')">Lecz</button><button class="btn gold" onclick="window.combatAction('Bomba')">Bomba</button>
                 </div>
             </div>
         </div>
