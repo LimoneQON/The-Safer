@@ -21,8 +21,11 @@ export function buildCSS3D(map, entities, player, selectedWorld) {
     world.innerHTML = ''; 
     let texClass = WORLDS[selectedWorld].tex;
 
-    for(let z=0; z<MAP_SIZE; z++) {
-        for(let x=0; x<MAP_SIZE; x++) {
+    // RENDER DISTANCE - Ograniczamy rysowanie do 4 bloków od gracza! To usuwa Lagi.
+    const RENDER_DIST = 4;
+
+    for(let z = Math.max(0, player.z - RENDER_DIST); z <= Math.min(MAP_SIZE-1, player.z + RENDER_DIST); z++) {
+        for(let x = Math.max(0, player.x - RENDER_DIST); x <= Math.min(MAP_SIZE-1, player.x + RENDER_DIST); x++) {
             let t = map[z][x];
             if(t !== T_FLOOR) {
                 let cls = `wall ${t === T_WALL ? texClass : ''}`;
@@ -34,13 +37,16 @@ export function buildCSS3D(map, entities, player, selectedWorld) {
         }
     }
 
+    // Rysowanie potworów i itemów - tylko tych w zasięgu wzroku
     entities.forEach(e => {
-        let s = document.createElement('div'); 
-        s.className = 'sprite'; 
-        s.innerHTML = e.sym; 
-        s.id = `ent_${e.x}_${e.z}`;
-        s.style.transform = `translate3d(${e.x*TILE_SIZE}px, 0, ${e.z*TILE_SIZE}px) rotateY(${-player.angle}deg)`;
-        world.appendChild(s);
+        if(Math.abs(e.x - player.x) <= RENDER_DIST && Math.abs(e.z - player.z) <= RENDER_DIST) {
+            let s = document.createElement('div'); 
+            s.className = 'sprite'; 
+            s.innerHTML = e.sym; 
+            s.id = `ent_${e.x}_${e.z}`;
+            s.style.transform = `translate3d(${e.x*TILE_SIZE}px, 0, ${e.z*TILE_SIZE}px) rotateY(${-player.angle}deg)`;
+            world.appendChild(s);
+        }
     });
 
     updateCamera(player);
@@ -49,8 +55,9 @@ export function buildCSS3D(map, entities, player, selectedWorld) {
 export function updateCamera(player) {
     let px = player.x * TILE_SIZE; 
     let pz = player.z * TILE_SIZE;
-    // Odsunięcie kamery translateZ(200px) poprawia widoczność "oczu" gracza
-    document.getElementById('world').style.transform = `translateZ(200px) rotateY(${-player.angle}deg) translate3d(${-px}px, 0, ${-pz}px)`;
+    
+    // Kamera przesunięta o translateZ(100px) poprawia widoczność przed ścianą.
+    document.getElementById('world').style.transform = `translateZ(100px) rotateY(${-player.angle}deg) translate3d(${-px}px, 0, ${-pz}px)`;
     
     document.querySelectorAll('.sprite').forEach(s => {
         let coords = s.id.split('_'); let ex = coords[1] * TILE_SIZE; let ez = coords[2] * TILE_SIZE;
