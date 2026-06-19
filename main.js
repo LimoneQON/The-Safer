@@ -3,11 +3,10 @@ import { render3D, drawMinimap } from './engine.js';
 
 let map = [], entities = [], logs = [];
 let state = 'MENU', difficulty = 1;
-let currentLevel = 1, currentSub = 1;
+let currentLevel = 1, currentSub = 1, selectedWorld = 'human';
 let currentEnemy = null, is18Plus = false;
 let keys = {w:false, a:false, s:false, d:false};
 
-// Prawidłowa matematyka FPS
 let player = {
     x: 1.5, y: 1.5, angle: 0, dirX: 1, dirY: 0, planeX: 0, planeY: 0.66, 
     hp: 100, maxHp: 100, coins: 0, xp: 0, reqXp: 100, lvl: 1, baseDmg: 0, baseArmor: 0, name: "", cls: "",
@@ -17,17 +16,27 @@ let player = {
 
 const gameCanvas = document.getElementById('gameCanvas'); const ctx = gameCanvas.getContext('2d');
 const miniCanvas = document.getElementById('minimap'); const mCtx = miniCanvas.getContext('2d');
-// Fix resize
-gameCanvas.width = 800; gameCanvas.height = 600;
+let otherPlayer = {x:0, y:0};
 
 window.logMsg = function(msg, type='log-new') { logs.unshift(`<span class="${type}">• ${msg}</span><br>`); if(logs.length > 7) logs.pop(); document.getElementById('log-box').innerHTML = logs.join(''); }
 
-// GLOBALNE OKNA - NAPRAWIONE!
-window.closeAllOverlays = function() { document.querySelectorAll('.overlay-ui').forEach(el=>el.style.display='none'); state='EXPLORE'; keys={w:false,a:false,s:false,d:false}; document.body.requestPointerLock(); };
-window.openOverlay = function(id) { document.querySelectorAll('.overlay-ui').forEach(el=>el.style.display='none'); state='MENU'; document.getElementById(id).style.display='flex'; document.exitPointerLock(); };
+// GLOBALNE FUNKCJE OVERLAY - TO NAPRAWIA KOWALA
+window.closeAllOverlays = function() { 
+    document.querySelectorAll('.overlay-ui').forEach(el=>el.style.display='none'); 
+    state='EXPLORE'; keys={w:false,a:false,s:false,d:false}; 
+    document.body.requestPointerLock(); 
+};
+
+window.openOverlay = function(id) { 
+    document.querySelectorAll('.overlay-ui').forEach(el=>el.style.display='none'); 
+    state='MENU'; 
+    document.getElementById(id).style.display='flex'; 
+    document.exitPointerLock(); 
+};
+
 window.closeDialog = function() { document.getElementById('dialog-overlay').style.display='none'; state='EXPLORE'; document.body.requestPointerLock(); };
 
-const STORAGE_KEY = 'fo_v26_final'; let currentUser = null;
+const STORAGE_KEY = 'fo_v30_final'; let currentUser = null;
 function getAccs() { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {}; } catch(e) { return {}; } }
 function saveAccs(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
 
@@ -35,14 +44,15 @@ window.registerAccount = function() { let u = document.getElementById('acc-usern
 window.loginAccount = function() { let u = document.getElementById('acc-username').value.trim(); let p = document.getElementById('acc-password').value.trim(); let accs = getAccs(); if(accs[u] && accs[u].password === p) { currentUser = u; document.getElementById('login-screen').style.display = 'none'; document.getElementById('main-menu').style.display = 'flex'; document.getElementById('logged-user-name').innerText = currentUser; } else { alert("Błędny login/hasło!"); } };
 window.logoutAccount = function() { location.reload(); };
 
-window.saveGame = function() { if(!currentUser) return; let accs = getAccs(); accs[currentUser].saveGame = { player, map, entities, currentLevel, currentSub, is18Plus, logs }; saveAccs(accs); window.logMsg(`💾 Zapisano!`, "log-epic"); };
-window.loadGame = function() { if(!currentUser) return; let accs = getAccs(); let s = accs[currentUser].saveGame; if(!s) { alert(`Brak zapisu!`); return; } player = s.player; map = s.map; entities = s.entities; currentLevel = s.currentLevel; currentSub = s.currentSub; is18Plus = s.is18Plus; logs = s.logs || []; document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-view').style.display = 'block'; window.updateWeaponView(); window.updateHUD(); window.updateInventoryUI(); state = 'EXPLORE'; requestAnimationFrame(gameLoop); window.logMsg(`💾 Wczytano grę.`, "log-epic"); };
+window.saveGame = function() { if(!currentUser) return; let accs = getAccs(); accs[currentUser].saveGame = { player, map, entities, currentLevel, currentSub, selectedWorld, is18Plus, logs }; saveAccs(accs); window.logMsg(`💾 Zapisano!`, "log-epic"); };
+window.loadGame = function() { if(!currentUser) return; let accs = getAccs(); let s = accs[currentUser].saveGame; if(!s) { alert(`Brak zapisu!`); return; } player = s.player; map = s.map; entities = s.entities; currentLevel = s.currentLevel; currentSub = s.currentSub; selectedWorld = s.selectedWorld; is18Plus = s.is18Plus; logs = s.logs || []; document.getElementById('main-menu').style.display = 'none'; document.getElementById('game-view').style.display = 'block'; window.updateWeaponView(); window.updateHUD(); window.updateInventoryUI(); state = 'EXPLORE'; requestAnimationFrame(gameLoop); window.logMsg(`💾 Wczytano grę.`, "log-epic"); };
 
 window.openCharSelect = function() { difficulty = parseInt(document.getElementById('diff-selector').value); is18Plus = document.getElementById('mode-18plus').checked; document.getElementById('main-menu').style.display = 'none'; document.getElementById('char-select-screen').style.display = 'flex'; };
 
 window.selectHero = function(idx) { 
     let h = HEROES[idx]; player.name = h.name; player.cls = h.cls; player.maxHp = h.hp; player.hp = h.hp; player.baseDmg = h.dmg; player.inventory.fill(null); window.addToInventory('pot', 2); 
-    document.getElementById('char-select-screen').style.display = 'none'; document.getElementById('game-view').style.display = 'block'; window.updateWeaponView(); generateLevel(); window.updateHUD(); window.updateInventoryUI(); state = 'EXPLORE'; requestAnimationFrame(gameLoop); document.body.requestPointerLock(); 
+    document.getElementById('char-select-screen').style.display = 'none'; 
+    document.getElementById('game-view').style.display = 'block'; window.updateWeaponView(); generateLevel(); window.updateHUD(); window.updateInventoryUI(); state = 'EXPLORE'; requestAnimationFrame(gameLoop); document.body.requestPointerLock(); 
 };
 
 // --- EKWIPUNEK ---
@@ -87,6 +97,7 @@ function generateLevel() {
 
     if(isSafeZone()) {
         window.logMsg("🌿 Safe Zone - Odpocznij i przygotuj się.", "log-heal"); document.getElementById('ui-safezone').style.display = 'inline';
+        let pm = empty(); map[pm.y][pm.x] = 4;
         for(let i=0; i<3; i++) { let p=empty(); entities.push({x:p.x+0.5, y:p.y+0.5, sym: '🪵', id: 'wood'}); }
         for(let i=0; i<2; i++) { let p=empty(); entities.push({x:p.x+0.5, y:p.y+0.5, sym: '⛓️', id: 'steel'}); }
         let p = empty(); let npc = NPC_POOL[Math.floor(Math.random()*NPC_POOL.length)];
@@ -107,7 +118,7 @@ function generateLevel() {
     window.updateHUD();
 }
 
-// --- POINTER LOCK I MYSZKA (NAPRAWIONA!) ---
+// --- POINTER LOCK (CELOWANIE MYSZKĄ FIX) ---
 document.getElementById('game-view').addEventListener('click', () => { if(state === 'EXPLORE') document.body.requestPointerLock(); });
 document.addEventListener('pointerlockchange', () => { if(document.pointerLockElement === document.body) { document.getElementById('pointer-lock-info').style.display = 'none'; } else { if(state === 'EXPLORE') document.getElementById('pointer-lock-info').style.display = 'block'; } });
 document.addEventListener('mousemove', (e) => {
@@ -124,7 +135,7 @@ let isMoving = false; let lastTime = 0;
 function gameLoop(time) {
     if(state === 'EXPLORE' && map.length > 0) { 
         let dt = (time - lastTime) / 1000; lastTime = time; if(dt > 0.1) dt = 0.1; 
-        let speed = 3.0 * dt; let moved = false; let nx = player.x, ny = player.y;
+        let speed = 4.0 * dt; let moved = false; let nx = player.x, ny = player.y;
         
         if(keys.w) { nx += player.dirX * speed; ny += player.dirY * speed; moved = true; }
         if(keys.s) { nx -= player.dirX * speed; ny -= player.dirY * speed; moved = true; }
@@ -134,7 +145,7 @@ function gameLoop(time) {
         let wep = document.getElementById('weapon-view');
         if(moved && !isMoving) { wep.classList.add('walking-bob'); isMoving = true; } else if(!moved && isMoving) { wep.classList.remove('walking-bob'); isMoving = false; }
 
-        let margin = 0.2;
+        let margin = 0.3;
         if(map[Math.floor(player.y)][Math.floor(nx + (nx>player.x?margin:-margin))] === 0 || map[Math.floor(player.y)][Math.floor(nx + (nx>player.x?margin:-margin))] >= 3) player.x = nx;
         if(map[Math.floor(ny + (ny>player.y?margin:-margin))][Math.floor(player.x)] === 0 || map[Math.floor(ny + (ny>player.y?margin:-margin))][Math.floor(player.x)] >= 3) player.y = ny;
 
@@ -160,7 +171,7 @@ function gameLoop(time) {
                 if(map[Math.floor(e.y)][Math.floor(e.x+dx)] === 0) e.x += dx; if(map[Math.floor(e.y+dy)][Math.floor(e.x)] === 0) e.y += dy;
             }
         }
-        render3D(ctx, map, entities, player, isSafeZone()); drawMinimap(mCtx, map, entities, player);
+        render3D(ctx, map, entities, player, otherPlayer, selectedWorld, isSafeZone()); drawMinimap(mCtx, map, entities, player, otherPlayer);
     }
     requestAnimationFrame(gameLoop);
 }
@@ -189,7 +200,7 @@ window.takePerk = function(id) { let perk = PERKS.find(p => p.id === id); perk.a
 window.updateWeaponView = function() { document.getElementById('weapon-view').innerText = player.weapon.sym; };
 window.updateHUD = function() {
     document.getElementById('ui-class').innerText = player.cls; document.getElementById('ui-hp').innerText = Math.floor(player.hp); document.getElementById('ui-maxhp').innerText = player.maxHp;
-    document.getElementById('ui-coins').innerText = player.coins; document.getElementById('ui-dlvl').innerText = `${currentLevel}-${currentSub}`; 
+    document.getElementById('ui-coins').innerText = player.coins; document.getElementById('ui-dlvl').innerText = `${currentLevel}-${currentSub}`; document.getElementById('ui-worldname').innerText = WORLDS[selectedWorld].title;
     document.getElementById('ch-lvl').innerText = player.lvl; document.getElementById('ch-xp').innerText = player.xp; document.getElementById('ch-req').innerText = player.reqXp;
     document.getElementById('ch-wep').innerText = player.weapon.name; document.getElementById('ch-helm').innerText = player.helm.name; document.getElementById('ch-arm').innerText = player.chest.name; document.getElementById('ch-pants').innerText = player.pants.name; document.getElementById('ch-boots').innerText = player.boots.name; document.getElementById('ch-belt').innerText = `${player.belt.name} (Max x${player.belt.cap})`; document.getElementById('ch-perks').innerText = player.perks.length > 0 ? player.perks.join(', ') : 'Brak';
     
@@ -217,6 +228,8 @@ window.craft = function(idx) {
         window.logMsg("Wykuto przedmiot!"); window.updateHUD(); window.openCrafting();
     } else window.logMsg("Brak surowców!", "log-dmg");
 };
+
+window.travelToWorld = function(world) { selectedWorld = world; currentLevel++; currentSub = 1; player.x -= player.dirX; player.y -= player.dirY; window.closeAllOverlays(); generateLevel(); window.logMsg("Zmieniono Wymiar!", "log-epic"); };
 
 // --- WALKA I ŚMIERĆ ---
 window.updateCombatUI = function() { document.getElementById('c-enemy-hp-bar').style.width = Math.max(0, (currentEnemy.hp / currentEnemy.maxHp) * 100) + '%'; document.getElementById('c-player-hp-bar').style.width = Math.max(0, (player.hp / player.maxHp) * 100) + '%'; document.getElementById('c-player-hp-text').innerText = Math.floor(player.hp); }
