@@ -1,20 +1,52 @@
-export const WEAPONS = [ {name: "Pięści", dmg: 0, rar: 1}, {name: "Skarpety na ręce", dmg: 1, rar: 1}, {name: "Sztylet", dmg: 3, rar: 1}, {name: "Drewniana Pałka", dmg: 5, rar: 1}, {name: "Stalowy Miecz", dmg: 12, rar: 2}, {name: "Elficki Łuk", dmg: 25, rar: 3}, {name: "Ognisty Miecz", dmg: 35, rar: 3}, {name: "Krasnoludzki Topór", dmg: 45, rar: 4}, {name: "Młot Tytanów", dmg: 130, rar: 4}, {name: "Ostrze Nieskończoności", dmg: 200, rar: 4} ];
-export const ARMORS = [ {name: "Szmaty", def: 0, rar: 1}, {name: "Skórzana Kurta", def: 3, rar: 1}, {name: "Żelazny Pancerz", def: 12, rar: 2}, {name: "Zbroja Maga", def: 18, rar: 3}, {name: "Pancerz Golema", def: 35, rar: 4}, {name: "Mithrilowa Zbroja", def: 75, rar: 4}, {name: "Aura Niewidzialności", def: 200, rar: 4} ];
+export const MAP_SIZE = 24; 
+export const TILE_SIZE = 300;
+export const INV_SIZE = 20;
 
-export const WORLDS = {
-    human: { title: "Ludzkie Królestwa", biomes: [ {name: "🌲 MROCZNY LAS", wall: '#1b3311', floor: '#0f1f09', door: '#4a2f1d', exitText: "SCHODY"}, {name: "🧱 ZAPOMNIANE LOCHY", wall: '#2a2a35', floor: '#1a1a22', door: '#3a2218', exitText: "WROTA"} ], mobs: [ {n: "Zły Wilk", s: "🐺", hp: 30, d: 8}, {n: "Goblin", s: "👺", hp: 40, d: 12}, {n: "Demon", s: "👿", hp: 120, d: 30} ] },
-    elf: { title: "Świat Elfów", biomes: [ {name: "✨ KRYSZTAŁOWY LAS", wall: '#113333', floor: '#0a1a1a', door: '#338888', exitText: "MOST"} ], mobs: [ {n: "Strażnik Lasu", s: "🧝", hp: 45, d: 10}, {n: "Golem Światła", s: "🧿", hp: 90, d: 20} ] },
-    dwarf: { title: "Podziemia Krasnoludów", biomes: [ {name: "🌋 KUŹNIA MAGMY", wall: '#441100', floor: '#220800', door: '#ff5500', exitText: "WROTA"} ], mobs: [ {n: "Krasnolud", s: "🧔", hp: 60, d: 12}, {n: "Żywiołak Magmy", s: "🔥", hp: 100, d: 35} ] },
-    homunculus: { title: "Przeklęte Laboratoria", biomes: [ {name: "☣️ KANAŁY MUTANTÓW", wall: '#2a3a1a', floor: '#1a2a0a', door: '#445522', exitText: "RURA"} ], mobs: [ {n: "Pełzacz", s: "🐛", hp: 50, d: 18}, {n: "Homunkulus", s: "👁️", hp: 160, d: 40} ] }
+export const T_WALL = 1, T_FLOOR = 0, T_DOOR = 2, T_EXIT = 3, T_PORTAL = 4, T_MEGA_PORTAL = 5;
+export const DIRS = [ {dx: 0, dz: -1}, {dx: 1, dz: 0}, {dx: 0, dz: 1}, {dx: -1, dz: 0} ];
+
+export const ITEM_DB = {
+    'wood': { sym: '🪵', name: 'Drewno', type: 'mat' },
+    'steel': { sym: '⛓️', name: 'Stal', type: 'mat' },
+    'fire': { sym: '🔥', name: 'Ogień', type: 'mat' },
+    'magic': { sym: '✨', name: 'Magia', type: 'mat' },
+    'pot': { sym: '🧪', name: 'Mikstura HP', type: 'use', action: (p)=>{ p.hp=Math.min(p.maxHp, p.hp+50); window.logMsg("Leczysz 50 HP.","log-heal"); } },
+    'bomb': { sym: '💣', name: 'Bomba', type: 'combat' },
+    'key': { sym: '🔑', name: 'Klucz Skarbca', type: 'key' }
 };
 
-export const PERKS = [
-    {id: 'brute', name: 'Siłacz', desc: '+15 Ataku na stałe', onTake: (p) => p.baseDmg += 15},
-    {id: 'vitality', name: 'Witalność', desc: '+50 Max HP', onTake: (p) => { p.maxHp += 50; p.hp += 50; }},
-    {id: 'sapper', name: 'Saper', desc: 'Dostajesz 5 bomb. Bomby x2', onTake: (p) => p.inv.bombs += 5},
-    {id: 'hacker', name: 'Haker', desc: 'Możliwość integracji kodu świata', onTake: (p) => {}},
-    {id: 'boss_slayer', name: 'Pogromca Bossów', desc: '2x Dmg Bossom', onTake: (p)=>{}},
-    {id: 'regen', name: 'Regeneracja', desc: '+2 HP co krok na mapie', onTake: (p)=>{}}
+export const WEAPONS = [ 
+    {name: "Pięści", dmg: 0}, 
+    {name: "Stalowy Miecz", dmg: 15}, 
+    {name: "Krasnoludzki Topór", dmg: 35}, 
+    {name: "Ostrze Zagłady", dmg: 100} 
 ];
 
-export const DIRS = [ {dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: 0, dy: 1}, {dx: -1, dy: 0} ];
+export const ARMORS = [ 
+    {name: "Szmaty", def: 0}, 
+    {name: "Żelazna Zbroja", def: 15}, 
+    {name: "Mithril", def: 40} 
+];
+
+export const BELTS = [ 
+    {name: "Brak", cap: 5}, 
+    {name: "Skórzany Pas", cap: 15}, 
+    {name: "Pas Tytanów", cap: 50} 
+];
+
+export const RECIPES = [
+    {name: "Skórzany Pas (Max Stack x15)", req: {wood: 5}, action: (p)=>{ p.belt = BELTS[1]; window.logMsg("Masz lepszy pas!"); }},
+    {name: "Stalowy Miecz (+15 Dmg)", req: {steel: 3, wood: 1}, action: (p)=>{ p.weapon = WEAPONS[1]; window.logMsg("Wykuto Miecz!"); }},
+    {name: "Krasnoludzki Topór (+35 Dmg)", req: {steel: 10, fire: 5}, action: (p)=>{ p.weapon = WEAPONS[2]; window.logMsg("Wykuto Topór!"); }},
+    {name: "Ostrze Zagłady (+100 Dmg)", req: {steel: 30, magic: 20, fire: 20}, action: (p)=>{ p.weapon = WEAPONS[3]; window.logMsg("Wykuto Legendę!", "log-epic"); }},
+    {name: "Żelazna Zbroja (+15 Def)", req: {steel: 8}, action: (p)=>{ p.armor = ARMORS[1]; }},
+    {name: "Mikstura Leczenia", req: {magic: 1, wood: 1}, action: (p)=>{ window.addToInventory('pot', 1); window.logMsg("Uwarzono Miksturę!"); }},
+    {name: "Bomba Obszarowa", req: {fire: 2, steel: 1}, action: (p)=>{ window.addToInventory('bomb', 1); window.logMsg("Zbudowano Bombę!"); }}
+];
+
+export const WORLDS = {
+    human: { title: "Ludzkie Królestwa", tex: 'tex-human', mobs: [ {n: "Wilk", s: "🐺", hp: 30, d: 8}, {n: "Goblin", s: "👺", hp: 40, d: 12} ] },
+    elf: { title: "Świat Elfów", tex: 'tex-elf', mobs: [ {n: "Strażnik", s: "🧝", hp: 45, d: 10}, {n: "Wróżka", s: "🧚", hp: 20, d: 15} ] },
+    dwarf: { title: "Podziemia Krasnoludów", tex: 'tex-dwarf', mobs: [ {n: "Krasnolud", s: "🧔", hp: 60, d: 15}, {n: "Żywiołak", s: "🔥", hp: 100, d: 35} ] },
+    homunculus: { title: "Laboratoria", tex: 'tex-human', mobs: [ {n: "Szczur", s: "🐀", hp: 35, d: 15}, {n: "Homunkulus", s: "👁️", hp: 160, d: 40} ] }
+};
